@@ -1,0 +1,25 @@
+--@name 2.500 Game Engine
+--@author sekta
+--@client
+
+--[[
+    2500 - The simply and not bad 2D game engine
+    on starfall.
+--]]
+
+ge2500 = {}
+
+ge2500.version = "1.0"
+
+ge2500.classes = {}
+
+ge2500.particles = {}
+
+ge2500.world = {
+    objects = {},
+    particles = {}    
+}
+
+function ge2500.GetVersion()
+   return ge2500.version 
+end
