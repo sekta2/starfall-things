@@ -9,11 +9,15 @@
 
 ge2500 = {}
 
-ge2500.version = "1.0"
+ge2500.version = "1.1"
 
 ge2500.classes = {}
 
 ge2500.particles = {}
+
+ge2500.asc = 0
+
+ge2500.logo = render.createMaterial("https://cdn.discordapp.com/attachments/728160913311662220/1080899285400432650/2k.png")
 
 ge2500.world = {
     objects = {},
@@ -21,5 +25,124 @@ ge2500.world = {
 }
 
 function ge2500.GetVersion()
-   return ge2500.version 
+   return ge2500.version
+end
+
+function ge2500.DeriveClass(name,hitbox,paint,think,init)
+    ge2500.classes[name] = {
+        class = name,
+        hitboxsize = hitbox,
+        paintfunc = paint,
+        thinkfunc = think,
+        init = init
+    }
+end
+
+function ge2500.DeriveParticle(name,paint,init)
+    ge2500.particles[name] = {
+        class = name,
+        paintfunc = paint,
+        init = init
+    }
+end
+
+function ge2500.CreateObject(class,pos)
+    ge2500.asc = ge2500.asc + 1
+    ge2500.world.objects[ge2500.asc] = {
+        uid = ge2500.asc,
+        class = class,
+        pos = pos or Vector(0,0,0),
+        vars = {}
+    }
+    local init = ge2500.classes[class].init
+    init(ge2500.world.objects[ge2500.asc])
+    
+    return ge2500.asc
+end
+
+function ge2500.CreateParticle(class,pos)
+    ge2500.asc = ge2500.asc + 1
+    ge2500.world.particles[ge2500.asc] = {
+        uid = ge2500.asc,
+        class = class,
+        pos = pos or Vector(0,0,0),
+        vars = {}
+    }
+    local init = ge2500.particles[class].init
+    init(ge2500.world.particles[ge2500.asc])
+    
+    return ge2500.asc
+end
+
+function ge2500.SetPosObject(uid,pos)
+    local obj = ge2500.world.objects[uid]
+    if obj then
+        obj.pos = pos
+    end
+end
+
+function ge2500.SetPosParticle(uid,pos)
+    local obj = ge2500.world.particles[uid]
+    if obj then
+        obj.pos = pos
+    end
+end
+
+function ge2500.GetPosObject(uid)
+    local obj = ge2500.world.objects[uid]
+    if obj then
+        return obj.pos
+    end
+end
+
+function ge2500.GetPosParticle(uid)
+    local obj = ge2500.world.particles[uid]
+    if obj then
+        return obj.pos
+    end
+end
+
+function ge2500.SetVarObject(uid,index,value)
+    local obj = ge2500.world.objects[uid]
+    if obj then
+        obj.vars[index] = value
+    end
+end
+
+function ge2500.SetVarParticle(uid,index,value)
+    local obj = ge2500.world.particles[uid]
+    if obj then
+        obj.vars[index] = value
+    end
+end
+
+function ge2500.GetVarObject(uid,index)
+    local obj = ge2500.world.objects[uid]
+    if obj then
+        return obj.vars[index]
+    end
+end
+
+function ge2500.GetVarParticle(uid,index)
+    local obj = ge2500.world.particles[uid]
+    if obj then
+        return obj.vars[index]
+    end
+end
+
+function ge2500.Think()
+    for id,object in ipairs(ge2500.world.objects) do
+        local functhink = ge2500.classes[object.class].thinkfunc
+        functhink(object)
+    end
+end
+
+function ge2500.Paint()
+    for id,object in ipairs(ge2500.world.objects) do
+        local funcpaint = ge2500.classes[object.class].paintfunc
+        funcpaint(object)
+    end
+    for id,object in ipairs(ge2500.world.particles) do
+        
+    end
 end
