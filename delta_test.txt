@@ -1,7 +1,7 @@
 --@name Delta Test
 --@author sekta
 --@client
---@include delta-engine.txt
+--@include https://raw.githubusercontent.com/sekta2/starfall-things/main/delta-engine.txt as delta-engine.txt
 
 require("delta-engine.txt")
 
