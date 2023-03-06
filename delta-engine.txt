@@ -1,0 +1,53 @@
+--@name Delta Engine
+--@author sekta
+--@client
+
+deltae = {}
+
+deltae.asc = 0
+
+deltae.objects = {}
+
+function deltae.CreateObject(class,x,y,think,paint,init)
+    deltae.asc = deltae.asc + 1
+    
+    deltae.objects[deltae.asc] = {
+        uid = deltae.asc,
+        class = class,
+        think = think,
+        paint = paint,
+        x = x,
+        y = y
+    }
+    local func = init
+    func(deltae.objects[deltae.asc])
+    
+    return deltae.asc
+end
+
+function deltae.GetNear(class,x,y)
+    local result = nil
+    local dist = 10000000
+    for k,v in pairs(deltae.objects) do
+        local d = math.distance(x,y,v.x,v.y)
+        if d < dist and v.class == class then
+            dist = d
+            result = v.uid 
+        end  
+    end
+    return result
+end
+
+function deltae.Think()
+    for k,v in pairs(deltae.objects) do
+        local func = v.think
+        func(v)    
+    end
+end
+
+function deltae.Paint()
+    for k,v in pairs(deltae.objects) do
+        local func = v.paint
+        func(v)    
+    end
+end

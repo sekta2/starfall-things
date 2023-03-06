@@ -1,0 +1,182 @@
+--@name Delta Test
+--@author sekta
+--@client
+--@include delta-engine.txt
+
+require("delta-engine.txt")
+
+function deltaTest_CreatePBullet(x,y,dir)
+    deltae.CreateObject("player_bullet",x,y,function(obj)
+        local dir = obj.direction
+        if dir == 1 then
+            obj.y = obj.y - 3
+        elseif dir == 2 then
+            obj.y = obj.y + 3
+        elseif dir == 3 then
+            obj.x = obj.x - 3
+        elseif dir == 4 then
+            obj.x = obj.x + 3
+        end
+        if (obj.x >= 512 or obj.x <= 0) or (obj.y >= 512 or obj.y <= 0) then
+            deltae.objects[obj.uid] = nil 
+        end
+        
+        local enemy = deltae.GetNear("enemy",obj.x,obj.y)
+        if enemy then
+            local bx = deltae.objects[enemy].x
+            local by = deltae.objects[enemy].y
+            if math.distance(obj.x,obj.y,bx,by)<=10 then
+                deltae.objects[obj.uid] = nil
+                deltae.objects[enemy] = nil 
+            end
+        end 
+        
+    end, function(obj)
+        render.setColor(Color(255,255,55))
+        render.drawRoundedBox(5,obj.x-1.5,obj.y-1.5,3,3)
+    end, function(obj)
+        obj.direction = dir
+        obj.cooldown= timer.curtime()
+    end)
+end
+
+local perms = false
+setupPermissionRequest({"bass.loadURL"}, "Allow sounds in game?", true)
+hook.add("permissionrequest","",function()
+    perms = true
+    bass.loadURL("https://www.ostmusic.org/?view=file&format=raw&id=9794", "3d", function(obj) obj:setPos(chip():getPos()) end)    
+end)
+
+function deltaTest_CreateEBullet(x,y,x1,y1)
+    deltae.CreateObject("enemy_bullet",x,y,function(obj)
+        if (obj.x >= 512 or obj.x <= 0) or (obj.y >= 512 or obj.y <= 0) then
+            deltae.objects[obj.uid] = nil 
+        end
+        
+        obj.x = obj.x + obj.norm.x
+        obj.y = obj.y + obj.norm.y
+        
+        local px = deltae.objects[deltae.gamePlayer].x
+        local py = deltae.objects[deltae.gamePlayer].y
+        
+        if math.distance(obj.x,obj.y,px,py)<=10 then
+            deltae.objects[obj.uid] = nil
+            playerhp = playerhp - 1
+        end
+        
+    end, function(obj)
+        render.setColor(Color(255,255,55))
+        render.drawRoundedBox(5,obj.x-1.5,obj.y-1.5,3,3)
+    end, function(obj)
+        obj.norm = (Vector(x1,y1) - Vector(obj.x,obj.y)):getNormalized() * 1.2
+    end)
+end
+
+function deltaTest_CreateEnemy(x,y)
+    deltae.CreateObject("enemy",x,y,function(obj)
+        local px = deltae.objects[deltae.gamePlayer].x
+        local py = deltae.objects[deltae.gamePlayer].y
+        
+        local norm = (Vector(px,py) - Vector(obj.x,obj.y)):getNormalized() * obj.speed
+        if math.distance(obj.x,obj.y,px,py)<=30 then norm = (Vector(obj.x,obj.y) - Vector(px,py)):getNormalized() * obj.speed end
+        
+        obj.x = obj.x + norm.x
+        obj.y = obj.y + norm.y
+        
+        if timer.curtime() >= obj.cooldown and math.distance(obj.x,obj.y,px,py)<=70 then
+            obj.cooldown = timer.curtime() + 3
+            deltaTest_CreateEBullet(obj.x,obj.y,px,py) 
+        end
+        
+    end, function(obj)
+        render.setColor(Color(255,55,55))
+        render.drawRoundedBox(5,obj.x-2.5,obj.y-2.5,5,5)
+    end, function(obj)
+        obj.cooldown = timer.curtime() + 3
+        obj.speed = math.rand(0.7,1)
+    end)
+end
+
+function setUp_Game()
+    playerhp = 100
+    lose = false
+    
+    deltae.gamePlayer = deltae.CreateObject("player",512/2,512/2,function(obj)
+        if player():inVehicle() then
+            if input.isKeyDown(33) then
+                obj.y = obj.y - 1
+                obj.direction = 1
+            end
+            if input.isKeyDown(29) then
+                obj.y = obj.y + 1
+                obj.direction = 2
+            end
+            if input.isKeyDown(11) then
+                obj.x = obj.x - 1
+                obj.direction = 3
+            end
+            if input.isKeyDown(14) then
+                obj.x = obj.x + 1
+                obj.direction = 4
+            end
+            local dir = obj.direction
+            if input.isKeyDown(79) and obj.cooldown <= timer.curtime() then
+                obj.cooldown = timer.curtime() + 2
+                if dir == 1 then
+                    obj.y = obj.y - 15
+                elseif dir == 2 then
+                    obj.y = obj.y + 15
+                elseif dir == 3 then
+                    obj.x = obj.x - 15
+                elseif dir == 4 then
+                    obj.x = obj.x + 15
+                end
+            end
+            if input.isMouseDown(107) and obj.cooldown <= timer.curtime() then
+                obj.cooldown = timer.curtime() + 0.3
+                deltaTest_CreatePBullet(obj.x,obj.y,dir)
+            end
+        end
+    end, function(obj)
+        render.setColor(Color(255,255,255))
+        render.drawRoundedBox(5,obj.x-2.5,obj.y-2.5,5,5)
+    end, function(obj)
+        obj.direction = 1
+        obj.cooldown= timer.curtime()
+    end)
+    
+    for i=1,50 do
+        deltaTest_CreateEnemy(0,0) 
+    end 
+end
+
+setUp_Game()
+
+hook.add("tick","delta.tick",function()
+    if not lose then deltae.Think() end
+    
+    if playerhp <= 0 and lose == false then
+        lose = true
+        deltae.objects = {}
+    end
+    
+    if lose == true and input.isKeyDown(64) and player():inVehicle() then
+        lose = false
+        setUp_Game() 
+    end
+    
+end)
+
+hook.add("render","delta.render",function()
+    if not lose then deltae.Paint() end
+    
+    render.setColor(Color(255,55,55))
+    render.setFont("Default")
+    
+    if lose then
+        render.drawSimpleText(512/2,(512/2)-5,"You lose",1,1)
+        render.drawSimpleText(512/2,(512/2)+5,"Sit and press ENTER to respawn",1,1)
+    else
+        render.drawSimpleText((deltae.objects[deltae.gamePlayer].x),(deltae.objects[deltae.gamePlayer].y)-10,"HP: " .. playerhp,1,1)
+    end
+end)
